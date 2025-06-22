@@ -6,36 +6,10 @@ from diagrams.aws.database import RDS
 from diagrams.aws.network import ELB
 from diagrams.custom import Custom
 
-# Configuración crítica para Graphviz
-os.environ['PATH'] += os.pathsep + '/opt/bin'
-os.environ['LD_LIBRARY_PATH'] = '/opt/lib:' + os.environ.get('LD_LIBRARY_PATH', '')
+# Agregar la ruta del binario `dot` desde el layer al PATH
+os.environ["PATH"] = f"/opt/python/bin:{os.environ.get('PATH', '')}"
 
-# Verificación de Graphviz y diagrams
-def verify_dependencies():
-    """Verifica que Graphviz y diagrams estén correctamente instalados."""
-    # 1. Verifica Graphviz
-    dot_path = '/opt/bin/dot'
-    if not os.path.exists(dot_path):
-        raise Exception("❌ Graphviz no encontrado en /opt/bin/dot")
-    
-    try:
-        version = subprocess.run(
-            [dot_path, '-V'],
-            capture_output=True,
-            text=True
-        )
-        print(f"✅ Graphviz encontrado. Versión: {version.stderr.strip()}")
-    except Exception as e:
-        raise Exception(f"❌ Error al ejecutar 'dot': {str(e)}")
-
-    # 2. Verifica diagrams (intenta crear un diagrama mínimo)
-    try:
-        with Diagram("Test", show=False, filename="/tmp/test_diagram"):
-            EC2("Test EC2")
-        print("✅ diagrams funciona correctamente")
-    except Exception as e:
-        raise Exception(f"❌ Error en diagrams: {str(e)}")
-
+print("PATH:", os.environ["PATH"])
 # Mapeo de componentes
 CLASES_DIAGRAMAS = {
     "EC2": EC2,
