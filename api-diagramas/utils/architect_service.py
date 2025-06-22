@@ -1,65 +1,70 @@
+import os
+import subprocess
 from diagrams import Diagram
 from diagrams.aws.compute import EC2
 from diagrams.aws.database import RDS
 from diagrams.aws.network import ELB
 from diagrams.custom import Custom
-import os
-import subprocess
 
-# Configuración del PATH
+# Configuración crítica para Graphviz
 os.environ['PATH'] += os.pathsep + '/opt/bin'
+os.environ['LD_LIBRARY_PATH'] = '/opt/lib:' + os.environ.get('LD_LIBRARY_PATH', '')
 
-# Verificación mejorada
-dot_path = '/opt/bin/dot'
-if os.path.exists(dot_path):
-    print(f"Graphviz encontrado en: {dot_path}")
-    print("Permisos:", oct(os.stat(dot_path).st_mode)[-3:])
+# Verificación de Graphviz y diagrams
+def verify_dependencies():
+    """Verifica que Graphviz y diagrams estén correctamente instalados."""
+    # 1. Verifica Graphviz
+    dot_path = '/opt/bin/dot'
+    if not os.path.exists(dot_path):
+        raise Exception("❌ Graphviz no encontrado en /opt/bin/dot")
     
     try:
-        version = subprocess.run([dot_path, '-V'], capture_output=True, text=True)
-        print("Versión de Graphviz:", version.stderr)
+        version = subprocess.run(
+            [dot_path, '-V'],
+            capture_output=True,
+            text=True
+        )
+        print(f"✅ Graphviz encontrado. Versión: {version.stderr.strip()}")
     except Exception as e:
-        print("Error al ejecutar dot:", str(e))
-        raise
-else:
-    raise Exception("Graphviz no encontrado en /opt/bin/dot")
+        raise Exception(f"❌ Error al ejecutar 'dot': {str(e)}")
 
+    # 2. Verifica diagrams (intenta crear un diagrama mínimo)
+    try:
+        with Diagram("Test", show=False, filename="/tmp/test_diagram"):
+            EC2("Test EC2")
+        print("✅ diagrams funciona correctamente")
+    except Exception as e:
+        raise Exception(f"❌ Error en diagrams: {str(e)}")
 
-
-# Mapeo de tipo a clase
+# Mapeo de componentes
 CLASES_DIAGRAMAS = {
     "EC2": EC2,
     "RDS": RDS,
     "ELB": ELB,
-    # Puedes agregar más tipos aquí o usar Custom para genéricos
 }
 
 def generar_diagrama_arquitectura(data):
     """
-    Genera un diagrama .dot dinámico a partir de un JSON que describe componentes y conexiones.
+    Genera un diagrama .dot a partir de un JSON.
     """
+    verify_dependencies()  # Verifica dependencias antes de continuar
+
     titulo = data.get("titulo", "Arquitectura")
-    componentes_raw = data.get("componentes", [])
+    componentes = data.get("componentes", [])
     conexiones = data.get("conexiones", [])
 
-    # Diccionario para acceder a los nodos por nombre
-    nodos = {}
+    output_path = "/tmp/diagrama.dot"
+    if os.path.exists(output_path):
+        os.remove(output_path)
 
-    dot_path = "/tmp/diagrama_arquitectura.dot"
-    if os.path.exists(dot_path):
-        os.remove(dot_path)
-
-    with Diagram(titulo, show=False, outformat="dot", filename="/tmp/diagrama_arquitectura"):
-        for comp in componentes_raw:
-            tipo = comp.get("tipo")
-            nombre = comp.get("nombre")
-            clase = CLASES_DIAGRAMAS.get(tipo, Custom)
-            nodo = clase(nombre)
-            nodos[nombre] = nodo
-
+    with Diagram(titulo, show=False, outformat="dot", filename="/tmp/diagrama"):
+        nodos = {
+            comp["nombre"]: CLASES_DIAGRAMAS.get(comp["tipo"], Custom)(comp["nombre"])
+            for comp in componentes
+        }
         for origen, destino in conexiones:
             if origen in nodos and destino in nodos:
                 nodos[origen] >> nodos[destino]
 
-    with open(dot_path, "r") as f:
+    with open(output_path, "r") as f:
         return f.read()
