@@ -1,16 +1,14 @@
-def convert_json_to_mermaid(data):
-    lines = ["graph TD"]
-    for entity, props in data.items():
-        if isinstance(props, dict):
-            # Crea un nodo para la entidad
-            lines.append(f"  {entity}[{entity}]")
-            for prop, prop_type in props.items():
-                # Crea nodos para las propiedades con sus tipos
-                lines.append(f"  {prop}[{prop}: {prop_type}]")
-                lines.append(f"  {entity} --> {prop}")
-        elif isinstance(props, list):
-            for item in props:
-                lines.append(f"  {entity} --> {item}")
-        else:
-            lines.append(f"  {entity} --> {props}")
+
+def convert_json_to_mermaid(data, style='table'):
+    if style == 'table':
+        lines = ["classDiagram"]
+        for entity, props in data.items():
+            lines.append(f"  class {entity} {{")
+            lines.extend([f"    {v} {k}" for k, v in props.items()])
+            lines.append("  }")
+    else:  # 'graph' (default)
+        lines = ["graph TD"]
+        for entity, props in data.items():
+            lines.append(f'  {entity}["{entity}"]')
+            lines.extend([f'  {k}[{k}: {v}]\n  {entity} --> {k}' for k, v in props.items()])
     return "\n".join(lines)
