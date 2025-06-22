@@ -1,21 +1,29 @@
-import jwt
-from jwt import ExpiredSignatureError, InvalidTokenError
 import os
+import json
+import boto3
+from botocore.exceptions import ClientError
 
-SECRET_KEY = os.environ.get("JWT_SECRET", "clave-supersecreta")
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table('ValidarTable')
 
-def validar_token(token):
-    try:
-        decode = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        
+def lambda_handler(event, context):
+    print(event)
+    token = event['headers']['Authorization']
+    if not token:
         return {
-            "user_id": decode.get("sub"),
-            "tenant_id": decode.get("tenant_id"),
-            "claims": decode
+            "statusCode": 403,
+            "message": "Token no proporcionado"
         }
-
-    except ExpiredSignatureError:
-        raise Exception("Token expirado")
-    except InvalidTokenError as e:
-        raise Exception(f"Token inválido: {str(e)}")
-
+    
+    lambda_client = boto3.client('lambda')
+    payload_string = '{ "token": "' + token +  '" }'
+     invoke_response = lambda_client.invoke(FunctionName="ValidarToken",
+                                           InvocationType='RequestResponse',
+                                           Payload = payload_string)
+    response = json.loads(invoke_response['Payload'].read())
+    print(response)
+    if response['statusCode'] == 403:
+        return {
+            'statusCode' : 403,
+            'status' : 'Forbidden - Acceso No Autorizado'
+        }
