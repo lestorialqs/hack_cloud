@@ -1,56 +1,77 @@
 import boto3
 import hashlib
-import uuid # Genera valores únicos
+import uuid
 from datetime import datetime, timedelta
 import json
 
-# Hashear contraseña
 def hash_password(password):
-    # Retorna la contraseña hasheada
     return hashlib.sha256(password.encode()).hexdigest()
 
 def lambda_handler(event, context):
-    print("Received event:", event)
-    # Entrada (json)
-    body = event['body'] # Access the body directly as it's already a dictionary
-    user_id = body['user_id']
-    password = body['password']
-    tenant_id = body['tenant_id']  # Add tenant_id to the input
-    hashed_password = hash_password(password)
-    # Proceso
-    dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table('UsuariosTable')
-    response = table.get_item(
-        Key={
-            'tenant_id': tenant_id,  # Include tenant_id in the key
-            'user_id': user_id
-        }
-    )
-    if 'Item' not in response:
-        return {
-            'statusCode': 403,
-            'body': 'Usuario no existe'
-        }
-    else:
-        hashed_password_bd = response['Item']['password']
-        if hashed_password == hashed_password_bd:
-            # Genera token
-            token = str(uuid.uuid4())
-            fecha_hora_exp = datetime.now() + timedelta(minutes=60)
-            registro = {
-                'token': token,
-                'expires': fecha_hora_exp.strftime('%Y-%m-%d %H:%M:%S')
-            }
-            table = dynamodb.Table('ValidarTable')
-            dynamodbResponse = table.put_item(Item = registro)
+    try:
+        print("Received event:", event)
+
+        # Parsear el cuerpo
+        if 'body' in event:
+            body = json.loads(event['body']) if isinstance(event['body'], str) else event['body']
         else:
+            body = event
+
+        correo = body.get('correo')
+        password = body.get('password')
+
+        if not correo or not password:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'error': 'Faltan correo o password'})
+            }
+
+        hashed_password = hash_password(password)
+
+        dynamodb = boto3.resource('dynamodb')
+        tabla_usuarios = dynamodb.Table('UsuariosTable')
+
+        # Leer el perfil del usuario
+        response = tabla_usuarios.get_item(
+            Key={
+                'correo': correo,
+                'tipo_item': 'perfil'
+            }
+        )
+
+        if 'Item' not in response:
             return {
                 'statusCode': 403,
-                'body': 'Password incorrecto'
+                'body': json.dumps({'error': 'Usuario no existe'})
             }
-    
-    # Salida (json)
-    return {
-        'statusCode': 200,
-        'token': token
-    }
+
+        user = response['Item']
+        if hashed_password != user['password']:
+            return {
+                'statusCode': 403,
+                'body': json.dumps({'error': 'Password incorrecto'})
+            }
+
+        # Si la contraseña coincide, generamos y almacenamos un token
+        token = str(uuid.uuid4())
+        expires = datetime.utcnow() + timedelta(minutes=60)
+
+        tabla_tokens = dynamodb.Table('ValidarTable')
+        tabla_tokens.put_item(
+            Item={
+                'token': token,
+                'correo': correo,
+                'expira': expires.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        )
+
+        return {
+            'statusCode': 200,
+            'body': json.dumps({'token': token})
+        }
+
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': str(e)})
+        }

@@ -1,4 +1,4 @@
-service: apiusuarios
+service: api-hack-usuarios
 
 frameworkVersion: '3'
 
