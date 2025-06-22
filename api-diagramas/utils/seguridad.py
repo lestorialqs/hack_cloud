@@ -17,7 +17,7 @@ def lambda_handler(event, context):
     
     lambda_client = boto3.client('lambda')
     payload_string = '{ "token": "' + token +  '" }'
-     invoke_response = lambda_client.invoke(FunctionName="ValidarToken",
+    invoke_response = lambda_client.invoke(FunctionName="ValidarToken",
                                            InvocationType='RequestResponse',
                                            Payload = payload_string)
     response = json.loads(invoke_response['Payload'].read())
