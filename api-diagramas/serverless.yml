@@ -15,7 +15,6 @@ provider:
 functions:
   crearJson:
     handler: functions/CrearJson.lambda_handler
-    
     events:
       - http:
           path: diagramas/crearJson
@@ -28,8 +27,7 @@ functions:
       - arn:aws:lambda:us-east-1:708642711016:layer:eralchemy-layer:1
     events:
       - http:
-        path: diagramas/crearEr
-        method: post
-        cors: true
-        integration: lambda
-  
+          path: diagramas/crearEr
+          method: post
+          cors: true
+          integration: lambda
