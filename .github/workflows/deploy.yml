@@ -31,14 +31,19 @@ jobs:
       - name: Deploy all Python Serverless services
         run: |
           DEPLOY_STAGE="dev"
+          SERVICE_DIRS=(api-usuarios api-diagramas)
 
-          echo "::group::Deploying api-usuarios"
-          cd api-usuarios
+          for service_dir in "${SERVICE_DIRS[@]}"; do
+            echo "::group::Deploying $service_dir"
+            cd "$service_dir"
 
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt -t .
-          fi
+            if [ -f requirements.txt ]; then
+              echo "Installing Python dependencies for $service_dir"
+              pip install -r requirements.txt -t .
+            fi
 
-          sls deploy --stage "$DEPLOY_STAGE" --verbose
-          cd ..
-          echo "::endgroup::"
+            sls deploy --stage "$DEPLOY_STAGE" --verbose
+
+            cd ..
+            echo "::endgroup::"
+          done

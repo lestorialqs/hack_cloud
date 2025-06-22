@@ -10,9 +10,13 @@ provider:
     role: arn:aws:iam::708642711016:role/LabRole
   stage: dev
   region: us-east-1
+
+  
 functions:
-  crearEntidadRelacion:
-    handler: functions/CrearEntidadRelacion.lambda_handler
+  crearJson:
+    handler: CrearJson.lambda_handler
     events:
       - http:
+          path: diagramas/crearJson
+          method: post
   
