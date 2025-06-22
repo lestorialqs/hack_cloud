@@ -1,0 +1,67 @@
+service: apiusuarios
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.13
+  timeout: 30  
+  iam:
+    role: arn:aws:iam::708642711016:role/LabRole
+  stage: dev
+  region: us-east-1
+
+functions:
+  crearUsuario:
+    handler: functions/CrearUsuario.lambda_handler
+    events:
+      - http:
+          path: /usuarios/crear
+          method: post
+          cors: true
+          integration: lambda
+  loginUsuario:
+    handler: functions/LoginUsuario.lambda_handler
+    events:
+      - http:
+          path: /usuarios/login
+          method: post
+          cors: true
+          integration: lambda
+  validarToken:
+    handler: functions/ValidarTokenAcceso.lambda_handler
+    events:
+      - http:
+          path: /usuarios/validarToken
+          method: post
+          cors: true
+          integration: lambda
+resources:
+  Resources:
+    UsuariosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: UsuariosTable
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: correo
+            AttributeType: S
+          - AttributeName: tipo_item
+            AttributeType: S
+        KeySchema:
+          - AttributeName: correo
+            KeyType: HASH
+          - AttributeName: tipo_item
+            KeyType: RANGE
+
+    ValidarTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ValidarTable
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: token
+            AttributeType: S
+        KeySchema:
+          - AttributeName: token
+            KeyType: HASH

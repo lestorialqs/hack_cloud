@@ -30,5 +30,15 @@ jobs:
 
       - name: Deploy all Python Serverless services
         run: |
-          echo "No service directories defined yet."
-          echo "Add your service folders (e.g., api-usuarios, api-productos) and update this script accordingly."
+          DEPLOY_STAGE="dev"
+
+          echo "::group::Deploying api-usuarios"
+          cd api-usuarios
+
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt -t .
+          fi
+
+          sls deploy --stage "$DEPLOY_STAGE" --verbose
+          cd ..
+          echo "::endgroup::"
