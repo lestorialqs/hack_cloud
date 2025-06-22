@@ -3,8 +3,10 @@ from diagrams.aws.compute import EC2
 from diagrams.aws.database import RDS
 from diagrams.aws.network import ELB
 from diagrams.custom import Custom
-import tempfile
 import os
+
+# IMPORTANTE: Agrega Graphviz bin al PATH
+os.environ["PATH"] = "/opt/bin:" + os.environ.get("PATH", "")
 
 # Mapeo de tipo a clase
 CLASES_DIAGRAMAS = {
@@ -25,17 +27,15 @@ def generar_diagrama_arquitectura(data):
     # Diccionario para acceder a los nodos por nombre
     nodos = {}
 
-    # Ruta del archivo .dot temporal
     dot_path = "/tmp/diagrama_arquitectura.dot"
     if os.path.exists(dot_path):
         os.remove(dot_path)
 
-    # Construcción del diagrama
     with Diagram(titulo, show=False, outformat="dot", filename="/tmp/diagrama_arquitectura"):
         for comp in componentes_raw:
             tipo = comp.get("tipo")
             nombre = comp.get("nombre")
-            clase = CLASES_DIAGRAMAS.get(tipo, Custom)  # Usa Custom si no está mapeado
+            clase = CLASES_DIAGRAMAS.get(tipo, Custom)
             nodo = clase(nombre)
             nodos[nombre] = nodo
 
@@ -43,6 +43,5 @@ def generar_diagrama_arquitectura(data):
             if origen in nodos and destino in nodos:
                 nodos[origen] >> nodos[destino]
 
-    # Leer archivo generado
     with open(dot_path, "r") as f:
         return f.read()
