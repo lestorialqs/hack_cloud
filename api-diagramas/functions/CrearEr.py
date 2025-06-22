@@ -12,8 +12,8 @@ def lambda_handler(event, context):
 
         return {
             "statusCode": 200,
-            "headers": {"Content-Type": "text/plain"},
-            "body": resultado
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps({"dot": resultado})
         }
 
     except Exception as e:
