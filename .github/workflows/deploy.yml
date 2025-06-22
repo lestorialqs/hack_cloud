@@ -30,22 +30,5 @@ jobs:
 
       - name: Deploy all Python Serverless services
         run: |
-          SERVICE_DIRS=(api-usuarios api-productos api-compras)
-          DEPLOY_STAGE="dev"
-
-          for service_dir in "${SERVICE_DIRS[@]}"; do
-            echo "::group::Deploying service: $service_dir"
-            cd "$service_dir"
-
-            # Instala dependencias de Python si existe requirements.txt
-            if [ -f "requirements.txt" ]; then
-              echo "Installing Python dependencies for $service_dir..."
-              pip install -r requirements.txt -t .
-            fi
-
-            echo "Deploying $service_dir to AWS (stage: $DEPLOY_STAGE)..."
-            sls deploy --stage "$DEPLOY_STAGE" --verbose
-
-            cd ..
-            echo "::endgroup::"
-          done
+          echo "No service directories defined yet."
+          echo "Add your service folders (e.g., api-usuarios, api-productos) and update this script accordingly."
