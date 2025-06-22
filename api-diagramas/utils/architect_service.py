@@ -4,10 +4,26 @@ from diagrams.aws.database import RDS
 from diagrams.aws.network import ELB
 from diagrams.custom import Custom
 import os
+import subprocess
 
-# IMPORTANTE: Agrega Graphviz bin al PATH
-# Agregar /opt/python/bin al PATH para que Lambda encuentre 'dot'
-os.environ["PATH"] = f"/opt/python/bin:{os.environ.get('PATH', '')}"
+# Añade /opt/bin al PATH
+os.environ['PATH'] += os.pathsep + '/opt/bin'
+
+try:
+    # Verifica si 'dot' está en el PATH
+    result = subprocess.run(['which', 'dot'], capture_output=True, text=True)
+    print("Path de 'dot':", result.stdout)
+
+    # Prueba ejecutar 'dot -V'
+    version = subprocess.run(['dot', '-V'], capture_output=True, text=True)
+    print("Versión de Graphviz:", version.stderr)
+except Exception as e:
+    print("Error:", str(e))
+    raise
+
+if os.path.exists('/opt/bin/dot'):
+    print("Permisos de 'dot':", oct(os.stat('/opt/bin/dot').st_mode)[-3:])
+    
 # Mapeo de tipo a clase
 CLASES_DIAGRAMAS = {
     "EC2": EC2,
