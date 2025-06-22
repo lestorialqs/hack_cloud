@@ -4,6 +4,12 @@ import json
 def lambda_handler(event, context):
     try:
         body = event.get("body")
+        if body is None:
+            return {
+                "statusCode": 400,
+                "body": "Falta el campo 'body' en el evento"
+            }
+
         data = json.loads(body) if isinstance(body, str) else body
 
         resultado = generar_diagrama_er(data)
@@ -13,6 +19,7 @@ def lambda_handler(event, context):
             "headers": {"Content-Type": "text/plain"},
             "body": resultado
         }
+
     except Exception as e:
         return {
             "statusCode": 500,
