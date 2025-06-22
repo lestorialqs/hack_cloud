@@ -11,7 +11,7 @@ provider:
   stage: dev
   region: us-east-1
 
-  
+
 functions:
   crearJson:
     handler: CrearJson.lambda_handler
@@ -19,4 +19,6 @@ functions:
       - http:
           path: diagramas/crearJson
           method: post
+          cors: true
+          integration: lambda
   
