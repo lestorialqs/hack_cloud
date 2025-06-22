@@ -6,24 +6,26 @@ from diagrams.custom import Custom
 import os
 import subprocess
 
-# Añade /opt/bin al PATH
+# Configuración del PATH
 os.environ['PATH'] += os.pathsep + '/opt/bin'
 
-try:
-    # Verifica si 'dot' está en el PATH
-    result = subprocess.run(['which', 'dot'], capture_output=True, text=True)
-    print("Path de 'dot':", result.stdout)
-
-    # Prueba ejecutar 'dot -V'
-    version = subprocess.run(['dot', '-V'], capture_output=True, text=True)
-    print("Versión de Graphviz:", version.stderr)
-except Exception as e:
-    print("Error:", str(e))
-    raise
-
-if os.path.exists('/opt/bin/dot'):
-    print("Permisos de 'dot':", oct(os.stat('/opt/bin/dot').st_mode)[-3:])
+# Verificación mejorada
+dot_path = '/opt/bin/dot'
+if os.path.exists(dot_path):
+    print(f"Graphviz encontrado en: {dot_path}")
+    print("Permisos:", oct(os.stat(dot_path).st_mode)[-3:])
     
+    try:
+        version = subprocess.run([dot_path, '-V'], capture_output=True, text=True)
+        print("Versión de Graphviz:", version.stderr)
+    except Exception as e:
+        print("Error al ejecutar dot:", str(e))
+        raise
+else:
+    raise Exception("Graphviz no encontrado en /opt/bin/dot")
+
+
+
 # Mapeo de tipo a clase
 CLASES_DIAGRAMAS = {
     "EC2": EC2,
