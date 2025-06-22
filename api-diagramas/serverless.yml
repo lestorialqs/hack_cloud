@@ -4,7 +4,7 @@ frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: python3.13
+  runtime: python3.10
   timeout: 30  
   iam:
     role: arn:aws:iam::708642711016:role/LabRole
@@ -24,7 +24,7 @@ functions:
   crearEr:
     handler: functions/CrearEr.lambda_handler
     layers:
-      - arn:aws:lambda:us-east-1:708642711016:layer:eralchemy-layer:1
+      - arn:aws:lambda:us-east-1:708642711016:layer:eralchemy-layer:2
     events:
       - http:
           path: diagramas/crearEr
