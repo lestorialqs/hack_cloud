@@ -6,8 +6,8 @@ from diagrams.custom import Custom
 import os
 
 # IMPORTANTE: Agrega Graphviz bin al PATH
-os.environ["PATH"] = "/opt/bin:" + os.environ.get("PATH", "")
-
+# Agregar /opt/python/bin al PATH para que Lambda encuentre 'dot'
+os.environ["PATH"] = f"/opt/python/bin:{os.environ.get('PATH', '')}"
 # Mapeo de tipo a clase
 CLASES_DIAGRAMAS = {
     "EC2": EC2,
