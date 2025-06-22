@@ -1,10 +1,11 @@
-from eralchemy import er_to_mermaid
+from eralchemy import render_er
 from sqlalchemy import create_engine, MetaData
+import tempfile
 import json
 
 def generar_diagrama_er(data):
     """
-    Usa ERAlchemy para convertir SQL a código Mermaid.
+    Genera código ER en formato Mermaid usando SQLAlchemy y ERAlchemy.
     """
     sql_code = data.get("schema")
     if not sql_code:
@@ -15,10 +16,12 @@ def generar_diagrama_er(data):
     connection = engine.connect()
     connection.execute(sql_code)
 
-    # Extraer metadatos y convertir a Mermaid
+    # Extraer metadatos
     metadata = MetaData()
     metadata.reflect(bind=engine)
-    mermaid_code = er_to_mermaid(metadata.tables.values())
+    
+    # Generar diagrama ER en formato DOT (Graphviz)
+    dot_code = render_er(metadata, output=None)  # None para obtener el código DOT
+    
     connection.close()
-
-    return mermaid_code
+    return dot_code
