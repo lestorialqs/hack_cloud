@@ -14,7 +14,7 @@ provider:
 
 functions:
   crearJson:
-    handler: CrearJson.lambda_handler
+    handler: functions/CrearJson.lambda_handler
     events:
       - http:
           path: diagramas/crearJson
