@@ -34,8 +34,7 @@ functions:
   crearDiagrama:
     handler: functions/CrearArqui.lambda_handler
     layers:
-      - arn:aws:lambda:us-east-1:708642711016:layer:diagram-layer:1  # Tu capa con `diagrams`
-      - arn:aws:lambda:us-east-1:770693421928:layer:Klayers-python39-graphviz:1  
+      - arn:aws:lambda:us-east-1:708642711016:layer:diagrams-graphviz:1
     events:
       - http:
           path: diagramas/crearArqui
