@@ -1,0 +1,53 @@
+#Sin terminar ni revisar
+import os
+import json
+import boto3
+import uuid
+import subprocess
+
+s3 = boto3.client('s3')
+DDB = boto3.resource('dynamodb').Table(os.environ['TABLE_NAME'])
+BUCKET = os.environ['BUCKET_NAME']
+
+def lambda_handler(event, context):
+    # 1. Autorización: Cognito authorizer ya validó JWT
+    user = event['requestContext']['authorizer']['jwt']['claims']['sub']
+    tenant = event['requestContext']['authorizer']['jwt']['claims'].get('custom:tenant_id')
+    body = json.loads(event['body'] or '{}')
+    source = body.get('source','').strip()
+    diagram_type = body.get('type')
+    if not source:
+        return {'statusCode': 400, 'body': json.dumps({'error':'Código fuente vacío'})}
+    # Validar diagram_type
+    # Generar ID único
+    diagram_id = str(uuid.uuid4())
+    prefix = f"{tenant}/{user}/{diagram_id}"
+    # Guardar source en S3
+    s3.put_object(Bucket=BUCKET, Key=f"{prefix}/source.txt", Body=source.encode('utf-8'))
+    try:
+        # Generación server-side (ejemplo con Graphviz/Diagrams)
+        # Escribir temp file .py o .dot
+        tmp_source = f"/tmp/{diagram_id}.py"
+        with open(tmp_source, 'w') as f:
+            f.write(f"""from diagrams import Diagram
+# Aquí parsear source según DSL...
+""")
+        # Ejecutar: depende de la configuración en contenedor
+        subprocess.run(['python3', tmp_source], check=True)
+        # Supongamos genera /tmp/{diagram_id}.svg
+        output_path = f"/tmp/{diagram_id}.svg"
+        with open(output_path, 'rb') as f:
+            s3.put_object(Bucket=BUCKET, Key=f"{prefix}/output.svg", Body=f)
+        url = s3.generate_presigned_url('get_object', Params={'Bucket':BUCKET,'Key':f"{prefix}/output.svg"}, ExpiresIn=3600)
+        # Guardar metadata en DynamoDB
+        DDB.put_item(Item={
+            'tenant_id': tenant,
+            'diagram_id': diagram_id,
+            'user_id': user,
+            'type': diagram_type,
+            's3_key': f"{prefix}/output.svg",
+            'created_at': int(context.aws_request_id and context.get_remaining_time_in_millis() or 0)  # o timestamp real
+        })
+        return {'statusCode':200, 'body': json.dumps({'diagram_id':diagram_id, 'url':url})}
+    except subprocess.CalledProcessError as e:
+        return {'statusCode':500, 'body': json.dumps({'error':'Error al generar diagrama'})}
