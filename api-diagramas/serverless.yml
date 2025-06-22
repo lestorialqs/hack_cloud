@@ -1,0 +1,18 @@
+service: api-hack-diagramas
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.13
+  timeout: 30  
+  iam:
+    role: arn:aws:iam::708642711016:role/LabRole
+  stage: dev
+  region: us-east-1
+functions:
+  crearEntidadRelacion:
+    handler: functions/CrearEntidadRelacion.lambda_handler
+    events:
+      - http:
+  
