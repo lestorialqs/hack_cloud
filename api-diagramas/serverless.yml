@@ -3,6 +3,10 @@ service: api-hack-diagramas
 frameworkVersion: '3'
 
 provider:
+  apiGateway:
+    binaryMediaTypes:
+      - 'image/png'
+      - 'image/jpeg'
   name: aws
   runtime: python3.10
   timeout: 30  

@@ -51,15 +51,20 @@ def lambda_handler(event, context):
     BUCKET_NAME = 'bucket-diagramas-aws'
     
     try:
-        # Caso 1: Imagen PNG binaria directa
+        # Caso 1: Imagen binaria directa (vía Postman)
         if event.get('isBase64Encoded', False):
             imagen_bytes = base64.b64decode(event['body'])
             nombre_archivo = f"directo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
         
-        # Caso 2: JSON con imagen en base64
+        # Caso 2: JSON con base64 (desde frontend)
         else:
-            body = json.loads(event['body'])
-            imagen_b64 = body['imagen'].split(',')[-1]  # Remover prefijo
+            # Si el body ya es un dict (cuando API Gateway lo parsea)
+            if isinstance(event['body'], dict):
+                body = event['body']
+            else:
+                body = json.loads(event['body'])
+            
+            imagen_b64 = body['imagen'].split(',')[-1]  # Remueve "data:image/png;base64,"
             imagen_bytes = base64.b64decode(imagen_b64)
             nombre_archivo = f"json_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
         
@@ -70,18 +75,14 @@ def lambda_handler(event, context):
             Key=nombre_archivo,
             Body=imagen_bytes,
             ContentType='image/png',
-            ACL='private'  # O 'public-read' si necesitas acceso público
+            ACL='private'
         )
-        
-        # URL pública (o firmada si es privado)
-        url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{nombre_archivo}"
         
         return {
             'statusCode': 200,
             'body': json.dumps({
-                'url': url,
-                'key': nombre_archivo,
-                'tipo': 'binario' if event.get('isBase64Encoded') else 'base64'
+                'url': f"https://{BUCKET_NAME}.s3.amazonaws.com/{nombre_archivo}",
+                'key': nombre_archivo
             })
         }
         
