@@ -31,17 +31,6 @@ functions:
           method: post
           cors: true
           integration: lambda
-  crearDiagrama:
-    handler: functions/CrearArqui.lambda_handler
-    environment:
-      PATH: "/opt/bin:/var/task:/usr/local/bin:/usr/bin/:/bin"  # Asegura que Lambda encuentre `dot`
-      LD_LIBRARY_PATH: "/opt/lib"
-    events:
-      - http:
-          path: diagramas/crearArqui
-          method: post
-          cors: true
-          integration: lambda
   guardarImagen:
     handler: functions/guardarImagen.handler
     events:
