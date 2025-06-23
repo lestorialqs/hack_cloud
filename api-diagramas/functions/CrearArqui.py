@@ -1,26 +1,17 @@
-import os
-import subprocess
+from diagrams import Diagram
+from diagrams.aws.compute import EC2
+import tempfile
 
 def lambda_handler(event, context):
-    # Configurar entorno - IMPORTANTE
-    os.environ['LD_LIBRARY_PATH'] = '/opt/python/lib'
+    os.environ["DIAGRAM_CACHE"] = "/tmp"  # Lambda solo permite escribir en /tmp
     
-    try:
-        result = subprocess.run(
-            ['/opt/python/bin/dot', '-V'],
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
-        
+    with Diagram("Ejemplo Lambda", show=False, filename="/tmp/diagrama"):
+        EC2("Servidor")
+    
+    with open("/tmp/diagrama.png", "rb") as f:
         return {
-            "success": result.returncode == 0,
-            "version_output": result.stderr.strip(),
-            "loaded_libs": os.listdir('/opt/python/lib'),
-            "env": dict(os.environ)
-        }
-    except Exception as e:
-        return {
-            "error": str(e),
-            "traceback": str(e.__traceback__)
+            "statusCode": 200,
+            "headers": {"Content-Type": "image/png"},
+            "body": f.read().hex(),  # O envíalo como base64
+            "isBase64Encoded": True
         }
