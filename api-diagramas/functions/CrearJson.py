@@ -49,14 +49,13 @@ def lambda_handler(event, context):
         body = event.get('body')
         data = json.loads(body) if isinstance(body, str) else body
         
-        # Convertir a Mermaid (puedes cambiar 'er' por 'class' o 'graph' según prefieras)
         mermaid_code = convert_json_to_mermaid(data, style='er')
         
         return {
             "statusCode": 200,
-            "body": json.dumps({
+            "body": {
                 "mermaidcode": mermaid_code
-            }),
+            },
             "headers": {
                 "Content-Type": "application/json"
             }
@@ -64,7 +63,7 @@ def lambda_handler(event, context):
     except ValueError as e:
         return {
             "statusCode": 400,
-            "body": json.dumps({"error": str(e)}),
+            "body": {"error": str(e)},
             "headers": {
                 "Content-Type": "application/json"
             }
@@ -72,7 +71,7 @@ def lambda_handler(event, context):
     except Exception as e:
         return {
             "statusCode": 500,
-            "body": json.dumps({"error": "Error interno del servidor"}),
+            "body": {"error": "Error interno del servidor"},
             "headers": {
                 "Content-Type": "application/json"
             }
