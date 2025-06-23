@@ -51,28 +51,37 @@ def lambda_handler(event, context):
     BUCKET_NAME = 'bucket-diagramas-aws'
     
     try:
-        # Extraer datos básicos
-        body = json.loads(event['body'])
-        imagen_b64 = body['imagen'].split(',')[-1]  # Remover prefijo data:image/png;base64,
-        nombre_archivo = f"diagrama_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        # Caso 1: Imagen PNG binaria directa
+        if event.get('isBase64Encoded', False):
+            imagen_bytes = base64.b64decode(event['body'])
+            nombre_archivo = f"directo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        
+        # Caso 2: JSON con imagen en base64
+        else:
+            body = json.loads(event['body'])
+            imagen_b64 = body['imagen'].split(',')[-1]  # Remover prefijo
+            imagen_bytes = base64.b64decode(imagen_b64)
+            nombre_archivo = f"json_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
         
         # Subir a S3
         s3 = boto3.client('s3')
         s3.put_object(
             Bucket=BUCKET_NAME,
             Key=nombre_archivo,
-            Body=base64.b64decode(imagen_b64),
-            ContentType='image/png'
+            Body=imagen_bytes,
+            ContentType='image/png',
+            ACL='private'  # O 'public-read' si necesitas acceso público
         )
         
-        # URL pública (opcional)
+        # URL pública (o firmada si es privado)
         url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{nombre_archivo}"
         
         return {
             'statusCode': 200,
             'body': json.dumps({
                 'url': url,
-                'nombre_archivo': nombre_archivo
+                'key': nombre_archivo,
+                'tipo': 'binario' if event.get('isBase64Encoded') else 'base64'
             })
         }
         
