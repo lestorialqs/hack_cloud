@@ -1,34 +1,83 @@
 import json
 import base64
-import uuid
-from utils.s3_utils import subir_a_s3
+import boto3
+from datetime import datetime
 
-def handler(event, context):
+def lambda_handler(event, context):
+    # === Validar token ===
     try:
-        body = json.loads(event['body'])
+        token = event['headers']['token']
+    except KeyError:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({'error': 'Token faltante en headers'})
+        }
 
-        nombre = body.get('nombre', f"img-{uuid.uuid4()}")
-        extension = body.get('extension', 'png')
-        imagen_base64 = body['imagen']
+    lambda_client = boto3.client('lambda')
+    payload = json.dumps({'token': token})
 
-        if extension not in ['png', 'svg']:
+    try:
+        invoke_response = lambda_client.invoke(
+            FunctionName="api-hack-usuarios-dev-validarToken",  # ← tu nombre real
+            InvocationType='RequestResponse',
+            Payload=payload
+        )
+        response_data = json.loads(invoke_response['Payload'].read())
+        status_code = response_data.get('statusCode', 500)
+        body_data = json.loads(response_data.get('body', '{}'))
+
+        if status_code != 200 or not body_data.get('tokenValido', False):
             return {
-                "statusCode": 400,
-                "body": json.dumps({"error": "Extensión no permitida"})
+                'statusCode': 403,
+                'body': json.dumps({
+                    'error': 'Acceso no autorizado',
+                    'razon': body_data.get('motivo', 'Desconocido')
+                })
             }
 
-        # Decodificar imagen
-        imagen_bytes = base64.b64decode(imagen_base64)
-
-        key = f"{nombre}.{extension}"
-        subir_a_s3(imagen_bytes, key, extension)
-
-        return {
-            "statusCode": 200,
-            "body": json.dumps({"mensaje": "Imagen guardada", "key": key})
-        }
     except Exception as e:
         return {
-            "statusCode": 500,
-            "body": json.dumps({"error": str(e)})
+            'statusCode': 500,
+            'body': json.dumps({'error': 'Fallo al validar token', 'detalle': str(e)})
+        }
+
+
+
+
+
+
+
+    # Configuración básica
+    BUCKET_NAME = 'bucket-diagramas-aws'
+    
+    try:
+        # Extraer datos básicos
+        body = json.loads(event['body'])
+        imagen_b64 = body['imagen'].split(',')[-1]  # Remover prefijo data:image/png;base64,
+        nombre_archivo = f"diagrama_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        
+        # Subir a S3
+        s3 = boto3.client('s3')
+        s3.put_object(
+            Bucket=BUCKET_NAME,
+            Key=nombre_archivo,
+            Body=base64.b64decode(imagen_b64),
+            ContentType='image/png'
+        )
+        
+        # URL pública (opcional)
+        url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{nombre_archivo}"
+        
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                'url': url,
+                'nombre_archivo': nombre_archivo
+            })
+        }
+        
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': str(e)})
         }
