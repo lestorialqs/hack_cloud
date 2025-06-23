@@ -27,6 +27,7 @@ functions:
               - Authorization
               - X-Api-Key
               - X-Amz-Security-Token
+              - token
           integration: lambda
   crearEr:
     handler: functions/CrearEr.lambda_handler
@@ -43,7 +44,8 @@ functions:
               - X-Amz-Date
               - Authorization
               - X-Api-Key
-              - X-Amz-Security-Token
+              - X-Amz-Security-Token             
+              - token
           integration: lambda
   guardarImagen:
     handler: functions/guardarImagen.handler
@@ -59,6 +61,7 @@ functions:
               - Authorization
               - X-Api-Key
               - X-Amz-Security-Token
+              - token
           integration: lambda
 
 resources:
