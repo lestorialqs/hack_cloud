@@ -41,3 +41,17 @@ functions:
           method: post
           cors: true
           integration: lambda
+  guardarImagen:
+    handler: functions/guardarImagen.handler
+    events:
+      - http:
+          path: diagramas/guardarImagen
+          method: post
+          cors: true
+
+resources:
+  Resources:
+    BucketDiagramas:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: bucket-diagramas-aws
