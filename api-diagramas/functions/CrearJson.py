@@ -3,7 +3,25 @@ import json
 from utils.json_to_mermaid import convert_json_to_mermaid
 
 def lambda_handler(event, context):
-
+    print(event)
+    # Entrada (json)
+    producto = event['body']
+    
+    # Inicio - Proteger el Lambda
+    token = event['headers']['token']
+    lambda_client = boto3.client('lambda')    
+    payload_string = '{ "token": "' + token +  '" }'
+    invoke_response = lambda_client.invoke(FunctionName="seguridad",
+                                           InvocationType='RequestResponse',
+                                           Payload = payload_string)
+    response = json.loads(invoke_response['Payload'].read())
+    print(response)
+    if response['statusCode'] == 403:
+        return {
+            'statusCode' : 403,
+            'status' : 'Forbidden - Acceso No Autorizado'
+        }
+    # Fin - Proteger el Lambda  
     
     try:
         body = event.get('body')
