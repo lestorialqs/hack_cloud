@@ -52,7 +52,7 @@ functions:
               - token
           integration: lambda
   guardarImagen:
-    handler: functions/guardarImagen.handler
+    handler: functions/guardarImagen.lambda_handler
     events:
       - http:
           path: diagramas/guardarImagen
