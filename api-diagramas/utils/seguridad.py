@@ -3,27 +3,33 @@ import json
 import boto3
 from botocore.exceptions import ClientError
 
-dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('ValidarTable')
 
 def lambda_handler(event, context):
     print(event)
-    token = event['headers']['Authorization']
-    if not token:
-        return {
-            "statusCode": 403,
-            "message": "Token no proporcionado"
+    token = event['token']
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table('ValidarTable')
+    response = table.get_item(
+        Key={
+            'token': token
         }
+    )
+    if 'Item' not in response:
+        return {
+            'statusCode': 403,
+            'body': 'Token no existe'
+        }
+    else:
+        expires = response['Item']['expires']
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        if now > expires:
+            return {
+                'statusCode': 403,
+                'body': 'Token expirado'
+            }
     
-    lambda_client = boto3.client('lambda')
-    payload_string = '{ "token": "' + token +  '" }'
-    invoke_response = lambda_client.invoke(FunctionName="ValidarToken",
-                                           InvocationType='RequestResponse',
-                                           Payload = payload_string)
-    response = json.loads(invoke_response['Payload'].read())
-    print(response)
-    if response['statusCode'] == 403:
-        return {
-            'statusCode' : 403,
-            'status' : 'Forbidden - Acceso No Autorizado'
-        }
+    # Salida (json)
+    return {
+        'statusCode': 200,
+        'body': 'Token válido'
+    }
