@@ -1,9 +1,8 @@
-import boto3
 import json
 from utils.json_to_mermaid import convert_json_to_mermaid
+from utils.seguridad import validar_token  # <-- aquí
 
 def lambda_handler(event, context):
-    
     print("Evento recibido:", event)
 
     # === Validar token ===
@@ -15,31 +14,19 @@ def lambda_handler(event, context):
             'body': json.dumps({'error': 'Token faltante en headers'})
         }
 
-    # Invocar Lambda validador
-    lambda_client = boto3.client('lambda')
-    payload_string = json.dumps({"token": token})
+    resultado = validar_token(token)
 
-    invoke_response = lambda_client.invoke(
-        FunctionName="api-hack-usuarios-dev-validarToken",  # cambia si tu función tiene otro nombre
-        InvocationType='RequestResponse',
-        Payload=payload_string
-    )
-
-    response_payload = json.loads(invoke_response['Payload'].read())
-    print("Respuesta del validador:", response_payload)
-
-    # Interpretar respuesta del validador
-    status_code = response_payload.get('statusCode')
-    body = json.loads(response_payload.get('body', '{}'))
-    token_valido = body.get('tokenValido', False)
-
-    if status_code == 403 or not token_valido:
+    if not resultado.get('valido'):
         return {
             'statusCode': 403,
-            'body': json.dumps({'error': 'Acceso no autorizado'})
+            'body': json.dumps({
+                'error': 'Acceso no autorizado',
+                'razon': resultado.get('razon'),
+                'detalle': resultado.get('detalle', '')
+            })
         }
- 
-    
+
+    # === Continuar con la lógica principal ===
     try:
         body = event.get('body')
         data = json.loads(body) if isinstance(body, str) else body
@@ -55,5 +42,3 @@ def lambda_handler(event, context):
             "statusCode": 500,
             "body": json.dumps({"error": str(e)})
         }
-    
-    

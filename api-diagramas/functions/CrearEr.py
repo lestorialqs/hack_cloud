@@ -3,8 +3,6 @@ import json
 import boto3
 
 def lambda_handler(event, context):
-    print("Evento recibido:", event)
-
     # === Validación del token ===
     try:
         token = event['headers']['token']
