@@ -1,39 +1,36 @@
 import boto3
+import json
 from datetime import datetime
 
 def lambda_handler(event, context):
     try:
-        # Obtener token desde el evento
         token = event.get('token')
         if not token:
             return {
                 "statusCode": 400,
-                "body": json.dumps({"error": "Token no proporcionado"})
+                "body": json.dumps({"tokenValido": False, "motivo": "Token no proporcionado"})
             }
 
-        # Acceder a DynamoDB
         dynamodb = boto3.resource('dynamodb')
-        table = dynamodb.Table('ValidarTable')
+        table = dynamodb.Table('ValidarTable')  # ← Tu tabla real
         response = table.get_item(Key={'token': token})
-
-        # Verificar si existe
         item = response.get('Item')
+
         if not item:
             return {
                 "statusCode": 403,
                 "body": json.dumps({"tokenValido": False, "motivo": "Token no encontrado"})
             }
 
-        # Verificar expiración
         expires = item.get('expires')
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        now = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')  # UTC es mejor
+
         if now > expires:
             return {
                 "statusCode": 403,
                 "body": json.dumps({"tokenValido": False, "motivo": "Token expirado"})
             }
 
-        # Todo correcto
         return {
             "statusCode": 200,
             "body": json.dumps({"tokenValido": True})
@@ -42,5 +39,5 @@ def lambda_handler(event, context):
     except Exception as e:
         return {
             "statusCode": 500,
-            "body": json.dumps({"error": str(e)})
+            "body": json.dumps({"tokenValido": False, "motivo": "Error interno", "detalle": str(e)})
         }

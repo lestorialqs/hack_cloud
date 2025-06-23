@@ -1,6 +1,7 @@
+# functions/convertir_json/handler.py
+import boto3
 import json
 from utils.json_to_mermaid import convert_json_to_mermaid
-from utils.seguridad import validar_token  # <-- aquí
 
 def lambda_handler(event, context):
     print("Evento recibido:", event)
@@ -14,24 +15,40 @@ def lambda_handler(event, context):
             'body': json.dumps({'error': 'Token faltante en headers'})
         }
 
-    resultado = validar_token(token)
+    lambda_client = boto3.client('lambda')
+    payload = json.dumps({'token': token})
 
-    if not resultado.get('valido'):
+    try:
+        invoke_response = lambda_client.invoke(
+            FunctionName="api-hack-usuarios-dev-validarToken",  # ← tu nombre real
+            InvocationType='RequestResponse',
+            Payload=payload
+        )
+        response_data = json.loads(invoke_response['Payload'].read())
+        status_code = response_data.get('statusCode', 500)
+        body_data = json.loads(response_data.get('body', '{}'))
+
+        if status_code != 200 or not body_data.get('tokenValido', False):
+            return {
+                'statusCode': 403,
+                'body': json.dumps({
+                    'error': 'Acceso no autorizado',
+                    'razon': body_data.get('motivo', 'Desconocido')
+                })
+            }
+
+    except Exception as e:
         return {
-            'statusCode': 403,
-            'body': json.dumps({
-                'error': 'Acceso no autorizado',
-                'razon': resultado.get('razon'),
-                'detalle': resultado.get('detalle', '')
-            })
+            'statusCode': 500,
+            'body': json.dumps({'error': 'Fallo al validar token', 'detalle': str(e)})
         }
 
-    # === Continuar con la lógica principal ===
+    # === Convertir JSON a Mermaid ===
     try:
         body = event.get('body')
         data = json.loads(body) if isinstance(body, str) else body
         mermaid_code = convert_json_to_mermaid(data)
-        
+
         return {
             "statusCode": 200,
             "body": mermaid_code
