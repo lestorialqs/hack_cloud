@@ -1,101 +1,104 @@
-from utils.eralchemy_service import generar_diagrama_er
-import json
+# functions/convertir_json/handler.py
 import boto3
-from datetime import datetime
+import json
+from utils.json_to_mermaid import convert_json_to_mermaid
 
 def lambda_handler(event, context):
-    # === Validación del token ===
-    try:
-        # Obtener token de headers (API Gateway) o directamente del evento
-        headers = event.get('headers', {})
-        token = headers.get('token') or event.get('token')
-        
-        if not token:
-            return {
-                "statusCode": 400,
-                "body": json.dumps({"error": "Token faltante en headers"})
-            }
+    print("Evento recibido:", event)
 
-        # Invocar Lambda validador con estructura correcta
-        lambda_client = boto3.client('lambda')
-        payload = {
-            "token": token,
-            "headers": {"token": token}  # Compatibilidad con ambas formas
+    # === Validar token ===
+    try:
+        token = event['headers']['token']
+    except KeyError:
+        return {
+            'statusCode': 400,
+            'body': {'error': 'Token faltante en headers'},
+            'headers': {
+                'Content-Type': 'application/json'
+            }
         }
 
+    lambda_client = boto3.client('lambda')
+    payload = json.dumps({'token': token})
+
+    try:
         invoke_response = lambda_client.invoke(
             FunctionName="api-hack-usuarios-dev-validarToken",
             InvocationType='RequestResponse',
-            Payload=json.dumps(payload)
+            Payload=payload
         )
+        response_data = json.loads(invoke_response['Payload'].read())
+        status_code = response_data.get('statusCode', 500)
+        body_data = json.loads(response_data.get('body', '{}'))
 
-        # Procesar respuesta del validador
-        response_payload = json.loads(invoke_response['Payload'].read())
-        print("Respuesta del validador:", response_payload)
-
-        if invoke_response['StatusCode'] != 200:
+        if status_code != 200 or not body_data.get('tokenValido', False):
             return {
-                "statusCode": 500,
-                "body": json.dumps({"error": "Error al validar token"})
-            }
-
-        # Parsear la respuesta correctamente
-        validation_body = json.loads(response_payload.get('body', '{}'))
-        if not validation_body.get('tokenValido', False):
-            motivo = validation_body.get('motivo', 'Token inválido')
-            return {
-                "statusCode": 403,
-                "body": json.dumps({
-                    "error": "Acceso no autorizado",
-                    "razon": motivo
-                })
+                'statusCode': 403,
+                'body': {
+                    'error': 'Acceso no autorizado',
+                    'razon': body_data.get('motivo', 'Desconocido')
+                },
+                'headers': {
+                    'Content-Type': 'application/json'
+                }
             }
 
     except Exception as e:
-        print(f"Error en validación de token: {str(e)}")
         return {
-            "statusCode": 500,
-            "body": json.dumps({
-                "error": "Error interno al validar token",
-                "detalle": str(e)
-            })
+            'statusCode': 500,
+            'body': {
+                'error': 'Fallo al validar token',
+                'detalle': str(e)
+            },
+            'headers': {
+                'Content-Type': 'application/json'
+            }
         }
 
-    # === Procesar entrada y generar diagrama ER ===
+    # === Procesar entrada y generar diagrama ===
     try:
-        # Obtener y parsear el cuerpo correctamente
-        raw_body = event.get("body", "{}")
+        raw_body = event.get('body', '{}')
         body_data = json.loads(raw_body) if isinstance(raw_body, str) else raw_body
 
         if not isinstance(body_data, dict) or not body_data:
             return {
-                "statusCode": 400,
-                "body": json.dumps({"error": "Formato de cuerpo inválido"})
+                'statusCode': 400,
+                'body': {'error': 'Formato de cuerpo inválido'},
+                'headers': {
+                    'Content-Type': 'application/json'
+                }
             }
 
-        # Generar el diagrama ER
-        resultado = generar_diagrama_er(body_data)
-
+        mermaid_code = convert_json_to_mermaid(body_data, style='er')
+        
         return {
-            "statusCode": 200,
-            "headers": {
-                "Content-Type": "text/plain",
-                "Access-Control-Allow-Origin": "*"  # Para CORS
+            'statusCode': 200,
+            'body': {
+                'mermaidcode': mermaid_code
             },
-            "body": resultado
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'  # Para CORS
+            }
         }
 
     except json.JSONDecodeError:
         return {
-            "statusCode": 400,
-            "body": json.dumps({"error": "JSON malformado"})
+            'statusCode': 400,
+            'body': {'error': 'JSON malformado'},
+            'headers': {
+                'Content-Type': 'application/json'
+            }
         }
     except Exception as e:
-        print(f"Error al generar diagrama: {str(e)}")
+        print(f'Error al generar diagrama: {str(e)}')
         return {
-            "statusCode": 500,
-            "body": json.dumps({
-                "error": "Error al generar diagrama ER",
-                "detalle": str(e)
-            })
+            'statusCode': 500,
+            'body': {
+                'error': 'Error al generar diagrama',
+                'detalle': str(e)
+            },
+            'headers': {
+                'Content-Type': 'application/json'
+            }
         }
