@@ -1,10 +1,11 @@
 import boto3
 import json
 from datetime import datetime
-
 def lambda_handler(event, context):
     try:
-        token = event.get('token')
+        # Obtener token de headers o del cuerpo
+        token = event.get('headers', {}).get('token') or event.get('token')
+        
         if not token:
             return {
                 "statusCode": 400,
@@ -12,7 +13,7 @@ def lambda_handler(event, context):
             }
 
         dynamodb = boto3.resource('dynamodb')
-        table = dynamodb.Table('ValidarTable')  # ← Tu tabla real
+        table = dynamodb.Table('ValidarTable')
         response = table.get_item(Key={'token': token})
         item = response.get('Item')
 
@@ -22,8 +23,9 @@ def lambda_handler(event, context):
                 "body": json.dumps({"tokenValido": False, "motivo": "Token no encontrado"})
             }
 
-        expires = item.get('expires')
-        now = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')  # UTC es mejor
+        expires_str = item.get('expira')  # ← Corregido a 'expira'
+        expires = datetime.strptime(expires_str, '%Y-%m-%d %H:%M:%S')
+        now = datetime.utcnow()
 
         if now > expires:
             return {
@@ -37,6 +39,7 @@ def lambda_handler(event, context):
         }
 
     except Exception as e:
+        print(f"Error validando token: {str(e)}")
         return {
             "statusCode": 500,
             "body": json.dumps({"tokenValido": False, "motivo": "Error interno", "detalle": str(e)})
