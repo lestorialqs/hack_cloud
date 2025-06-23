@@ -3,25 +3,42 @@ import json
 from utils.json_to_mermaid import convert_json_to_mermaid
 
 def lambda_handler(event, context):
-    print(event)
-    # Entrada (json)
-    producto = event['body']
     
-    # Inicio - Proteger el Lambda
-    token = event['headers']['token']
-    lambda_client = boto3.client('lambda')    
-    payload_string = '{ "token": "' + token +  '" }'
-    invoke_response = lambda_client.invoke(FunctionName="api-hack-usuarios-dev-validarToken",
-                                           InvocationType='RequestResponse',
-                                           Payload = payload_string)
-    response = json.loads(invoke_response['Payload'].read())
-    print(response)
-    if response['statusCode'] == 403:
+    print("Evento recibido:", event)
+
+    # === Validar token ===
+    try:
+        token = event['headers']['token']
+    except KeyError:
         return {
-            'statusCode' : 403,
-            'status' : 'Forbidden - Acceso No Autorizado'
+            'statusCode': 400,
+            'body': json.dumps({'error': 'Token faltante en headers'})
         }
-    # Fin - Proteger el Lambda  
+
+    # Invocar Lambda validador
+    lambda_client = boto3.client('lambda')
+    payload_string = json.dumps({"token": token})
+
+    invoke_response = lambda_client.invoke(
+        FunctionName="api-hack-usuarios-dev-validarToken",  # cambia si tu función tiene otro nombre
+        InvocationType='RequestResponse',
+        Payload=payload_string
+    )
+
+    response_payload = json.loads(invoke_response['Payload'].read())
+    print("Respuesta del validador:", response_payload)
+
+    # Interpretar respuesta del validador
+    status_code = response_payload.get('statusCode')
+    body = json.loads(response_payload.get('body', '{}'))
+    token_valido = body.get('tokenValido', False)
+
+    if status_code == 403 or not token_valido:
+        return {
+            'statusCode': 403,
+            'body': json.dumps({'error': 'Acceso no autorizado'})
+        }
+ 
     
     try:
         body = event.get('body')
