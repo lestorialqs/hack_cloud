@@ -44,18 +44,36 @@ def lambda_handler(event, context):
         }
 
     # === Convertir JSON a Mermaid ===
+# === Convertir JSON a Mermaid ===
     try:
         body = event.get('body')
         data = json.loads(body) if isinstance(body, str) else body
-        mermaid_code = convert_json_to_mermaid(data)
-
+        
+        # Convertir a Mermaid (puedes cambiar 'er' por 'class' o 'graph' según prefieras)
+        mermaid_code = convert_json_to_mermaid(data, style='er')
+        
         return {
             "statusCode": 200,
-            "body": mermaid_code
+            "body": json.dumps({
+                "mermaidcode": mermaid_code
+            }),
+            "headers": {
+                "Content-Type": "application/json"
+            }
         }
-
+    except ValueError as e:
+        return {
+            "statusCode": 400,
+            "body": json.dumps({"error": str(e)}),
+            "headers": {
+                "Content-Type": "application/json"
+            }
+        }
     except Exception as e:
         return {
             "statusCode": 500,
-            "body": json.dumps({"error": str(e)})
+            "body": json.dumps({"error": "Error interno del servidor"}),
+            "headers": {
+                "Content-Type": "application/json"
+            }
         }
