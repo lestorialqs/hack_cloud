@@ -33,9 +33,6 @@ functions:
           integration: lambda
   crearDiagrama:
     handler: functions/CrearArqui.lambda_handler
-    layers:
-      - arn:aws:lambda:us-east-1:898466741470:layer:graphviz-lambda-layer:1  # Graphviz
-      - arn:aws:lambda:us-east-1:770693421928:layer:Klayers-python-diagrams:1  # Diagrams
     environment:
       PATH: "/opt/bin:/var/task:/usr/local/bin:/usr/bin/:/bin"  # Asegura que Lambda encuentre `dot`
       LD_LIBRARY_PATH: "/opt/lib"
