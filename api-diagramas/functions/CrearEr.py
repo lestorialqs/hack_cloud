@@ -1,5 +1,6 @@
 from utils.eralchemy_service import generar_diagrama_er
 import json
+import boto3
 
 def lambda_handler(event, context):
     print(event)
@@ -10,7 +11,7 @@ def lambda_handler(event, context):
     token = event['headers']['token']
     lambda_client = boto3.client('lambda')    
     payload_string = '{ "token": "' + token +  '" }'
-    invoke_response = lambda_client.invoke(FunctionName="ValidarTokenAcceso",
+    invoke_response = lambda_client.invoke(FunctionName="api-hack-usuarios-dev-validarToken",
                                            InvocationType='RequestResponse',
                                            Payload = payload_string)
     response = json.loads(invoke_response['Payload'].read())
